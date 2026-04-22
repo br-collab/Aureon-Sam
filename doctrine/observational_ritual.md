@@ -25,8 +25,16 @@ opposite posture.
 
 ## The nightly log
 
-Written at the end of each active session day. Three sections, in
-order.
+Written **by 22:00 America/New_York on each active session day**
+(hard deadline, amendment 2026-04-21 per operator directive; prior
+wording was "end of each active session day" — deliberately loose,
+operator tightened it). Three sections, in order.
+
+If the session continues past 22:00 ET, the log is written at 22:00
+with what has happened so far and appended to thereafter via the
+same-day rule (see "Day boundary" below). Missing a night still
+remains fine (see "What the ritual is NOT") — the 22:00 deadline
+governs active days, not days with no session.
 
 ### 1. What happened (mechanical)
 
@@ -164,7 +172,7 @@ about the artifact. The ritual is about the practice.
 
 ---
 
-## Adopted decisions (2026-04-18)
+## Adopted decisions (2026-04-18, last amended 2026-04-21)
 
 | # | Question | Adopted answer |
 | --- | --- | --- |
@@ -173,10 +181,11 @@ about the artifact. The ritual is about the practice.
 | 3 | Session boundaries | One log per ISO day in America/New_York; sessions append; midnight-crossings log to start date |
 | 4 | Backfill | Yes — retroactive nightly log for 2026-04-18 written |
 | 5 | Weekly cadence | ISO weeks (Mon–Sun); synthesis Sun 22:50 ET; first synthesis 2026-04-26 covering ISO week 16 |
+| 6 | Nightly cadence | By 22:00 America/New_York on each active session day (amended 2026-04-21 from "end of session") |
 
 ---
 
 *Ceterum censeo: observation without ranking is how patterns
 become visible. The ritual exists for that reason and no other.*
 
-— Sam, 2026-04-19
+— Sam, 2026-04-19 (amended 2026-04-21)

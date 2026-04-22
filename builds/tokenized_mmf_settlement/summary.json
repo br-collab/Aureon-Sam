@@ -1,0 +1,114 @@
+{
+  "data_label": "SYNTHETIC \u2014 not for production use",
+  "trade": {
+    "label": "SYNTHETIC",
+    "investor": "ACME Family Office (SYNTHETIC)",
+    "fund": "Generic Prime MMF Class I (SYNTHETIC)",
+    "shares": 1000000,
+    "nav_per_share_usd": 1.0,
+    "notional_usd": 1000000.0,
+    "trade_date": "2026-04-20T09:00:00"
+  },
+  "flows": {
+    "Traditional MMF (T+1)": {
+      "start": "2026-04-20T09:00:00",
+      "end": "2026-04-21T11:15:00",
+      "elapsed_seconds": 94500,
+      "step_count": 7,
+      "steps": [
+        {
+          "actor": "Broker / Order Mgmt System",
+          "action": "Capture investor subscription order",
+          "custodian_role_note": "",
+          "start": "2026-04-20T09:00:00",
+          "duration_seconds": 60
+        },
+        {
+          "actor": "Broker -> Transfer Agent (TA)",
+          "action": "Route order to TA via NSCC/Fund-SERV message",
+          "custodian_role_note": "",
+          "start": "2026-04-20T09:01:00",
+          "duration_seconds": 240
+        },
+        {
+          "actor": "Investor / Broker",
+          "action": "WAIT for 4:00pm ET NAV cutoff (order accrues during day)",
+          "custodian_role_note": "",
+          "start": "2026-04-20T09:05:00",
+          "duration_seconds": 24900
+        },
+        {
+          "actor": "Fund Accountant",
+          "action": "Strike NAV; compute shares = notional / NAV",
+          "custodian_role_note": "",
+          "start": "2026-04-20T16:00:00",
+          "duration_seconds": 5400
+        },
+        {
+          "actor": "Transfer Agent",
+          "action": "Confirm allotment to broker; instruct custodian",
+          "custodian_role_note": "TRADITIONAL CUSTODIAN ROLE: receives instruction to expect cash and to credit shares to the investor's segregated sub-account once cash lands. Custodian is the operational settlement counterparty, not just a record-keeper.",
+          "start": "2026-04-20T17:30:00",
+          "duration_seconds": 1800
+        },
+        {
+          "actor": "Investor's Bank -> Fund Custodian",
+          "action": "Fedwire cash settlement (T+1 morning)",
+          "custodian_role_note": "",
+          "start": "2026-04-21T09:00:00",
+          "duration_seconds": 7200
+        },
+        {
+          "actor": "Custodian + TA",
+          "action": "Cash matched; shares posted to investor account",
+          "custodian_role_note": "Custodian and TA reconcile via end-of-day file. Investor's beneficial ownership exists as an entry on the TA register; custodian holds cash leg and provides the audit trail.",
+          "start": "2026-04-21T11:00:00",
+          "duration_seconds": 900
+        }
+      ]
+    },
+    "Tokenized MMF (atomic DvP)": {
+      "start": "2026-04-20T09:00:00",
+      "end": "2026-04-20T09:00:15",
+      "elapsed_seconds": 15,
+      "step_count": 5,
+      "steps": [
+        {
+          "actor": "Investor (allowlisted wallet)",
+          "action": "Submit buy intent via portfolio dashboard",
+          "custodian_role_note": "",
+          "start": "2026-04-20T09:00:00",
+          "duration_seconds": 2
+        },
+        {
+          "actor": "Compliance Engine (HITL gate available)",
+          "action": "Verify allowlist, KYC token, jurisdiction, sanctions",
+          "custodian_role_note": "TOKENIZED CUSTODIAN ROLE STARTS HERE: the qualified custodian operates / co-signs the wallet via MPC or multisig and is the compliance enforcement point. No cash movement yet.",
+          "start": "2026-04-20T09:00:02",
+          "duration_seconds": 3
+        },
+        {
+          "actor": "Smart Contract",
+          "action": "Escrow tokenized cash (USDC / tokenized deposit)",
+          "custodian_role_note": "",
+          "start": "2026-04-20T09:00:05",
+          "duration_seconds": 2
+        },
+        {
+          "actor": "Issuer Multisig + Smart Contract",
+          "action": "Atomic DvP: mint MMF shares <-> release cash in one tx",
+          "custodian_role_note": "The transfer-agent function is now the smart contract: the share register is on-chain. Custodian no longer settles cash operationally; its role is key custody + compliance + asset-servicing (corporate actions, distributions).",
+          "start": "2026-04-20T09:00:07",
+          "duration_seconds": 5
+        },
+        {
+          "actor": "Chain Finality + Custodian Recon",
+          "action": "Block finality; custodian reconciles wallet snapshot",
+          "custodian_role_note": "",
+          "start": "2026-04-20T09:00:12",
+          "duration_seconds": 3
+        }
+      ]
+    }
+  }
+}

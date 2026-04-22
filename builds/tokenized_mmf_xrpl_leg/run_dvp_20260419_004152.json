@@ -1,0 +1,303 @@
+{
+  "mode": "happy_path",
+  "permissioned": false,
+  "data_label": "SYNTHETIC \u2014 XRPL testnet, not for production use",
+  "started_at_utc": "2026-04-19T00:40:41+00:00",
+  "finished_at_utc": "2026-04-19T00:41:52+00:00",
+  "rpc_endpoint": "https://s.altnet.rippletest.net:51234",
+  "share_issuer_address": "r3PBzCxd9ti4QAaojpogMeSwnynsPs17nb",
+  "cash_issuer_address": "rnG3BKMLLPyRKe2d6x4ZiCHXkNcVQetQJS",
+  "investor_address": "r3eM41FuyhQPMMBddWaanxfPfJdTnyfHYC",
+  "share_currency": "MMF",
+  "cash_currency": "USD",
+  "trade_notional": "1000000",
+  "hitl": {
+    "prompted_at_utc": "2026-04-19T00:41:34+00:00",
+    "decided_at_utc": "2026-04-19T00:41:34+00:00",
+    "reviewer_identity": "Guillermo Ravelo",
+    "keystroke": "approve",
+    "approval_reason": "Regression \u2014 open trust lines, hardened HITL schema, happy path",
+    "approved": true,
+    "context": "ShareIssuer:     r3PBzCxd9ti4QAaojpogMeSwnynsPs17nb\nCashIssuer:      rnG3BKMLLPyRKe2d6x4ZiCHXkNcVQetQJS\nInvestor:        r3eM41FuyhQPMMBddWaanxfPfJdTnyfHYC\nMode:            happy_path\nTrust-line model: open (any holder may open the trust line without issuer approval)\nAction:          Atomic DvP \u2014 swap 1000000 USD for 1000000 MMF\nGuarantees:      Resting Offer + cross-currency Payment with SendMax + tfLimitQuality = single-tx atomicity."
+  },
+  "steps": [
+    {
+      "label": "Fund ShareIssuer wallet (faucet)",
+      "started_at_utc": "2026-04-19T00:40:41+00:00",
+      "finished_at_utc": "2026-04-19T00:40:47+00:00",
+      "wall_seconds": 6.494,
+      "tx_hash": "",
+      "ledger_index": 0,
+      "ledger_close_utc": "",
+      "engine_result": "",
+      "note": "ShareIssuer address: r3PBzCxd9ti4QAaojpogMeSwnynsPs17nb"
+    },
+    {
+      "label": "Fund CashIssuer wallet (faucet)",
+      "started_at_utc": "2026-04-19T00:40:47+00:00",
+      "finished_at_utc": "2026-04-19T00:40:53+00:00",
+      "wall_seconds": 6.053,
+      "tx_hash": "",
+      "ledger_index": 0,
+      "ledger_close_utc": "",
+      "engine_result": "",
+      "note": "CashIssuer address: rnG3BKMLLPyRKe2d6x4ZiCHXkNcVQetQJS"
+    },
+    {
+      "label": "Fund Investor wallet (faucet)",
+      "started_at_utc": "2026-04-19T00:40:53+00:00",
+      "finished_at_utc": "2026-04-19T00:40:59+00:00",
+      "wall_seconds": 6.053,
+      "tx_hash": "",
+      "ledger_index": 0,
+      "ledger_close_utc": "",
+      "engine_result": "",
+      "note": "Investor address: r3eM41FuyhQPMMBddWaanxfPfJdTnyfHYC"
+    },
+    {
+      "label": "ShareIssuer AccountSet (enable DefaultRipple)",
+      "started_at_utc": "2026-04-19T00:40:59+00:00",
+      "finished_at_utc": "2026-04-19T00:41:04+00:00",
+      "wall_seconds": 5.058,
+      "tx_hash": "575F8A022D3C98DA5242D282743A27512DAA28A206E6BC027E2D984E64CFC0C1",
+      "ledger_index": 16656399,
+      "ledger_close_utc": "2026-04-19T00:41:02Z",
+      "engine_result": "tesSUCCESS",
+      "note": ""
+    },
+    {
+      "label": "CashIssuer AccountSet (enable DefaultRipple)",
+      "started_at_utc": "2026-04-19T00:41:04+00:00",
+      "finished_at_utc": "2026-04-19T00:41:11+00:00",
+      "wall_seconds": 6.693,
+      "tx_hash": "E6E2FA968B14A22B585319E6B32CFF865DA491E090869C7B0BBED89DEADA54E6",
+      "ledger_index": 16656401,
+      "ledger_close_utc": "2026-04-19T00:41:10Z",
+      "engine_result": "tesSUCCESS",
+      "note": ""
+    },
+    {
+      "label": "ShareIssuer TrustSet (hold USD from CashIssuer)",
+      "started_at_utc": "2026-04-19T00:41:11+00:00",
+      "finished_at_utc": "2026-04-19T00:41:16+00:00",
+      "wall_seconds": 5.054,
+      "tx_hash": "8654F36B475270CBEDE462C9113DCAF339461B0AF64818EE3582A37BC577A204",
+      "ledger_index": 16656403,
+      "ledger_close_utc": "2026-04-19T00:41:12Z",
+      "engine_result": "tesSUCCESS",
+      "note": ""
+    },
+    {
+      "label": "Investor TrustSet (hold MMF from ShareIssuer)",
+      "started_at_utc": "2026-04-19T00:41:16+00:00",
+      "finished_at_utc": "2026-04-19T00:41:23+00:00",
+      "wall_seconds": 6.801,
+      "tx_hash": "A252F9AFA366A377FFB2F5D845540BAF57C52B4D6DB76377152E4C0681117330",
+      "ledger_index": 16656405,
+      "ledger_close_utc": "2026-04-19T00:41:21Z",
+      "engine_result": "tesSUCCESS",
+      "note": ""
+    },
+    {
+      "label": "Investor TrustSet (hold USD from CashIssuer)",
+      "started_at_utc": "2026-04-19T00:41:23+00:00",
+      "finished_at_utc": "2026-04-19T00:41:28+00:00",
+      "wall_seconds": 5.072,
+      "tx_hash": "9302BDE86E90A2D765571D9ED8267B7E3F34E248748400C0C82D19008148DC90",
+      "ledger_index": 16656407,
+      "ledger_close_utc": "2026-04-19T00:41:30Z",
+      "engine_result": "tesSUCCESS",
+      "note": ""
+    },
+    {
+      "label": "CashIssuer Payment: pre-fund Investor with 1000000 USD",
+      "started_at_utc": "2026-04-19T00:41:28+00:00",
+      "finished_at_utc": "2026-04-19T00:41:34+00:00",
+      "wall_seconds": 6.649,
+      "tx_hash": "BD55BFD1C518BB5752DBF32B95D6BD5F8D3488E84A4B64EDD7280EA5C5F8FF32",
+      "ledger_index": 16656409,
+      "ledger_close_utc": "2026-04-19T00:41:32Z",
+      "engine_result": "tesSUCCESS",
+      "note": ""
+    },
+    {
+      "label": "ShareIssuer OfferCreate (resting): 1000000 MMF for 1000000 USD",
+      "started_at_utc": "2026-04-19T00:41:35+00:00",
+      "finished_at_utc": "2026-04-19T00:41:44+00:00",
+      "wall_seconds": 8.412,
+      "tx_hash": "301B54C88228F54F3F3D15487EF54E219C42E39243FE4C7325294A276E879965",
+      "ledger_index": 16656412,
+      "ledger_close_utc": "2026-04-19T00:41:41Z",
+      "engine_result": "tesSUCCESS",
+      "note": ""
+    },
+    {
+      "label": "Investor Payment (DvP swap): consume offer, 1000000 USD -> 1000000 MMF",
+      "started_at_utc": "2026-04-19T00:41:44+00:00",
+      "finished_at_utc": "2026-04-19T00:41:51+00:00",
+      "wall_seconds": 6.695,
+      "tx_hash": "227213E01E88E15D3A37621E25B3EE3FB9278F3530061FA4A1EAA6C2B2C0948D",
+      "ledger_index": 16656414,
+      "ledger_close_utc": "2026-04-19T00:41:50Z",
+      "engine_result": "tesSUCCESS",
+      "note": ""
+    }
+  ],
+  "balances_before_dvp": [
+    {
+      "account_label": "Generic Prime MMF Class I Issuer (SYNTHETIC)",
+      "account_address": "r3PBzCxd9ti4QAaojpogMeSwnynsPs17nb",
+      "taken_at_utc": "2026-04-19T00:41:35+00:00",
+      "lines": [
+        {
+          "account": "rnG3BKMLLPyRKe2d6x4ZiCHXkNcVQetQJS",
+          "balance": "0",
+          "currency": "USD",
+          "limit": "10000000",
+          "limit_peer": "0",
+          "quality_in": 0,
+          "quality_out": 0
+        },
+        {
+          "account": "r3eM41FuyhQPMMBddWaanxfPfJdTnyfHYC",
+          "balance": "0",
+          "currency": "MMF",
+          "limit": "0",
+          "limit_peer": "10000000",
+          "quality_in": 0,
+          "quality_out": 0
+        }
+      ]
+    },
+    {
+      "account_label": "Generic Tokenized-USD Issuer (SYNTHETIC)",
+      "account_address": "rnG3BKMLLPyRKe2d6x4ZiCHXkNcVQetQJS",
+      "taken_at_utc": "2026-04-19T00:41:35+00:00",
+      "lines": [
+        {
+          "account": "r3PBzCxd9ti4QAaojpogMeSwnynsPs17nb",
+          "balance": "0",
+          "currency": "USD",
+          "limit": "0",
+          "limit_peer": "10000000",
+          "quality_in": 0,
+          "quality_out": 0
+        },
+        {
+          "account": "r3eM41FuyhQPMMBddWaanxfPfJdTnyfHYC",
+          "balance": "-1000000",
+          "currency": "USD",
+          "limit": "0",
+          "limit_peer": "10000000",
+          "quality_in": 0,
+          "quality_out": 0
+        }
+      ]
+    },
+    {
+      "account_label": "ACME Family Office (SYNTHETIC)",
+      "account_address": "r3eM41FuyhQPMMBddWaanxfPfJdTnyfHYC",
+      "taken_at_utc": "2026-04-19T00:41:35+00:00",
+      "lines": [
+        {
+          "account": "r3PBzCxd9ti4QAaojpogMeSwnynsPs17nb",
+          "balance": "0",
+          "currency": "MMF",
+          "limit": "10000000",
+          "limit_peer": "0",
+          "quality_in": 0,
+          "quality_out": 0
+        },
+        {
+          "account": "rnG3BKMLLPyRKe2d6x4ZiCHXkNcVQetQJS",
+          "balance": "1000000",
+          "currency": "USD",
+          "limit": "10000000",
+          "limit_peer": "0",
+          "quality_in": 0,
+          "quality_out": 0
+        }
+      ]
+    }
+  ],
+  "balances_after_dvp": [
+    {
+      "account_label": "Generic Prime MMF Class I Issuer (SYNTHETIC)",
+      "account_address": "r3PBzCxd9ti4QAaojpogMeSwnynsPs17nb",
+      "taken_at_utc": "2026-04-19T00:41:51+00:00",
+      "lines": [
+        {
+          "account": "rnG3BKMLLPyRKe2d6x4ZiCHXkNcVQetQJS",
+          "balance": "1000000",
+          "currency": "USD",
+          "limit": "10000000",
+          "limit_peer": "0",
+          "quality_in": 0,
+          "quality_out": 0
+        },
+        {
+          "account": "r3eM41FuyhQPMMBddWaanxfPfJdTnyfHYC",
+          "balance": "-1000000",
+          "currency": "MMF",
+          "limit": "0",
+          "limit_peer": "10000000",
+          "quality_in": 0,
+          "quality_out": 0
+        }
+      ]
+    },
+    {
+      "account_label": "Generic Tokenized-USD Issuer (SYNTHETIC)",
+      "account_address": "rnG3BKMLLPyRKe2d6x4ZiCHXkNcVQetQJS",
+      "taken_at_utc": "2026-04-19T00:41:51+00:00",
+      "lines": [
+        {
+          "account": "r3PBzCxd9ti4QAaojpogMeSwnynsPs17nb",
+          "balance": "-1000000",
+          "currency": "USD",
+          "limit": "0",
+          "limit_peer": "10000000",
+          "quality_in": 0,
+          "quality_out": 0
+        },
+        {
+          "account": "r3eM41FuyhQPMMBddWaanxfPfJdTnyfHYC",
+          "balance": "0",
+          "currency": "USD",
+          "limit": "0",
+          "limit_peer": "10000000",
+          "quality_in": 0,
+          "quality_out": 0
+        }
+      ]
+    },
+    {
+      "account_label": "ACME Family Office (SYNTHETIC)",
+      "account_address": "r3eM41FuyhQPMMBddWaanxfPfJdTnyfHYC",
+      "taken_at_utc": "2026-04-19T00:41:52+00:00",
+      "lines": [
+        {
+          "account": "r3PBzCxd9ti4QAaojpogMeSwnynsPs17nb",
+          "balance": "1000000",
+          "currency": "MMF",
+          "limit": "10000000",
+          "limit_peer": "0",
+          "quality_in": 0,
+          "quality_out": 0
+        },
+        {
+          "account": "rnG3BKMLLPyRKe2d6x4ZiCHXkNcVQetQJS",
+          "balance": "0",
+          "currency": "USD",
+          "limit": "10000000",
+          "limit_peer": "0",
+          "quality_in": 0,
+          "quality_out": 0
+        }
+      ]
+    }
+  ],
+  "total_wall_seconds": 69.034,
+  "dvp_atomic": true,
+  "verdict": "DvP ATOMIC: investor received 1000000 MMF, USD drained to 0. Swap settled in a single validated ledger."
+}

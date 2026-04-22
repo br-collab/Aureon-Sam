@@ -1,0 +1,64 @@
+{
+  "data_label": "SYNTHETIC \u2014 XRPL testnet, not for production use",
+  "started_at_utc": "2026-04-18T22:16:09+00:00",
+  "finished_at_utc": "2026-04-18T22:16:44+00:00",
+  "rpc_endpoint": "https://s.altnet.rippletest.net:51234",
+  "issuer_address": "rHEaRgnBbV6yhQE737wgANbaR8htHXMRL5",
+  "investor_address": "rBeYo1y4H9VhVMqLbaK8CsAKZt2ps4ksEx",
+  "share_currency": "MMF",
+  "shares_issued": "1000000",
+  "steps": [
+    {
+      "label": "Fund issuer wallet (faucet)",
+      "started_at_utc": "2026-04-18T22:16:09+00:00",
+      "finished_at_utc": "2026-04-18T22:16:17+00:00",
+      "wall_seconds": 8.214,
+      "tx_hash": "",
+      "ledger_index": 0,
+      "ledger_close_utc": "",
+      "note": "Issuer address: rHEaRgnBbV6yhQE737wgANbaR8htHXMRL5"
+    },
+    {
+      "label": "Fund investor wallet (faucet)",
+      "started_at_utc": "2026-04-18T22:16:17+00:00",
+      "finished_at_utc": "2026-04-18T22:16:24+00:00",
+      "wall_seconds": 6.094,
+      "tx_hash": "",
+      "ledger_index": 0,
+      "ledger_close_utc": "",
+      "note": "Investor address: rBeYo1y4H9VhVMqLbaK8CsAKZt2ps4ksEx"
+    },
+    {
+      "label": "Issuer AccountSet (enable DefaultRipple)",
+      "started_at_utc": "2026-04-18T22:16:24+00:00",
+      "finished_at_utc": "2026-04-18T22:16:32+00:00",
+      "wall_seconds": 8.634,
+      "tx_hash": "D88A50B74420A14E9D3BFF236963E8FA9D4F04923FC81379D2AB2DB614E10475",
+      "ledger_index": 16653572,
+      "ledger_close_utc": "2026-04-18T22:16:31Z",
+      "note": "engine_result=tesSUCCESS"
+    },
+    {
+      "label": "Investor TrustSet (limit 10000000 MMF)",
+      "started_at_utc": "2026-04-18T22:16:32+00:00",
+      "finished_at_utc": "2026-04-18T22:16:39+00:00",
+      "wall_seconds": 6.798,
+      "tx_hash": "08F4D9CF9D48C17B239AC9A608AADDCB146A434F73A13B8354628D76BB6EC70E",
+      "ledger_index": 16653574,
+      "ledger_close_utc": "2026-04-18T22:16:40Z",
+      "note": "engine_result=tesSUCCESS"
+    },
+    {
+      "label": "Issuer Payment: issue 1000000 MMF to investor",
+      "started_at_utc": "2026-04-18T22:16:39+00:00",
+      "finished_at_utc": "2026-04-18T22:16:44+00:00",
+      "wall_seconds": 5.122,
+      "tx_hash": "8BA7670D543DF923598A589B7C489422061DB9B3EC425712B2ECE3BE19DB83A2",
+      "ledger_index": 16653576,
+      "ledger_close_utc": "2026-04-18T22:16:42Z",
+      "note": "engine_result=tesSUCCESS"
+    }
+  ],
+  "total_wall_seconds": 34.862,
+  "verdict": "On-chain finality across 3 txs: 20.554s. The parent sim's ~12s single-tx assumption survives; multi-tx setup is still orders of magnitude under T+1."
+}

@@ -1,0 +1,12 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+
+# Local-only Claude settings (machine-specific permissions)
+.claude/settings.local.json
+references/cato-mcp

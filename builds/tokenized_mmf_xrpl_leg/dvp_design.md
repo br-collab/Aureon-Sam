@@ -547,14 +547,15 @@ any of them and the code adapts with small edits.
 6. **Offer visibility on testnet — accept front-running risk
    disclosure, or address now?**
    **OPERATOR OVERRIDE 2026-04-18 — Q6: both variants now exist.**
-   The single `dvp_swap.py` ships two trust-line postures, selected
-   via `--permissioned`:
+   **OPERATOR DECISION 2026-04-21 — Option A cut-over executed.**
+   The two postures now live in separate files — one file per claim,
+   posture visible in a directory listing rather than a runtime flag:
 
-   - **Open variant (default).** Any holder may open a trust line to
-     `ShareIssuer` without issuer approval. Teaches the minimum path
+   - **Open variant — `dvp_swap.py`.** Any holder may open a trust line
+     to `ShareIssuer` without issuer approval. Teaches the minimum path
      to atomic DvP on XRPL. Not the mainnet-realistic posture.
-   - **Permissioned variant (`--permissioned`).** Adds two setup
-     transactions that together enforce pre-trade access control:
+   - **Permissioned variant — `dvp_swap_permissioned.py`.** Adds two
+     setup transactions that together enforce pre-trade access control:
      1. `AccountSet` with `asfRequireAuth` on `ShareIssuer`, set
         *before* any trust lines exist on that account (XRPL rule).
      2. `TrustSet` with `TF_SET_AUTH` submitted by `ShareIssuer`
@@ -564,20 +565,32 @@ any of them and the code adapts with small edits.
         the investor's MMF trust line. Without this step, the DvP
         `Payment` would fail with `tecNO_AUTH`.
 
-   *Rationale:* the architecture transfers directly to mainnet
-   without redesign. The compliance workflow that produces an
-   authorized investor address can plug into step 7b on any
-   institutional deployment without changing the atomic-DvP
-   mechanics in steps 10-11. The open variant is kept as a
-   teaching contrast — readers see the minimum primitive first,
-   then the production posture, and the diff between the two is
-   exactly the institutional access-control surface.
-   *Additional mainnet hardening still deferred:* Batch (XLS-56)
-   to collapse the inter-ledger window between Offer post and
-   Payment consumption entirely, when the amendment activates.
-   Authorization closes the "any holder can consume the offer"
-   surface; Batch would close the "offer exists between ledgers"
-   surface on top of that.
+   *Delta doc:* `dvp_swap_permissioned_design.md` governs the
+   extraction and names what is identical / what differs.
+
+   *Rationale for Option A (one file per posture):*
+   - Single-claim files. Each file states one claim and verifies it
+     end-to-end. No hidden `if permissioned:` branches a reader must
+     trace.
+   - Institutional reader path. When asking "how would this actually
+     run on mainnet," a reader opens `dvp_swap_permissioned.py`
+     directly — no CLI-flag archaeology.
+   - Clean migration target. When Batch (XLS-56) activates, the
+     permissioned file is where the Offer+Payment bundle goes. Edits
+     touch one file, not a cross-cutting branch.
+   - Maintenance hygiene. Two codepaths producing the same artifact
+     (the flag form) created a "which do I trust" question with no good
+     answer.
+
+   *Architectural claim unchanged:* the atomic-DvP mechanics in
+   steps 10-11 are byte-identical across both files. Permissioning
+   composes cleanly with atomicity — it does not alter the one-ledger
+   guarantee, only gates who is authorized to hold the issued asset.
+   *Additional mainnet hardening still deferred:* Batch (XLS-56) to
+   collapse the inter-ledger window between Offer post and Payment
+   consumption entirely, when the amendment activates. Authorization
+   closes the "any holder can consume the offer" surface; Batch would
+   close the "offer exists between ledgers" surface on top of that.
 
 7. **Artifact retention — one JSON per run (current), or an
    append-only log?** Chosen: one JSON per run, UTC-timestamped
@@ -591,11 +604,15 @@ any of them and the code adapts with small edits.
 
 ## Verified runs (reference)
 
-All four runs below use the **hardened HITL schema** (Q3 override —
+All runs below use the **hardened HITL schema** (Q3 override —
 `reviewer_identity` and `approval_reason` captured alongside keystroke
 and timestamp). Earlier pre-override artifacts
 (`run_dvp_20260418_230722.json`, `run_dvp_negative_20260418_231646.json`)
 are retained in-tree but not listed here; they predate the schema.
+
+### Round 1 — 2026-04-18/19 (flag-form, pre-Option A)
+Produced by `dvp_swap.py` with and without `--permissioned`.
+Retained in-tree for historical completeness.
 
 | Variant       | Mode          | Setup txs | Swap tx result                  | DvP atomic | Artifact                                                  |
 |---------------|---------------|----------:|----------------------------------|-----------:|-----------------------------------------------------------|
@@ -604,12 +621,24 @@ are retained in-tree but not listed here; they predate the schema.
 | Permissioned  | Happy path    | 11        | `tesSUCCESS` (ledger 16656361)   | ✓ True     | `run_dvp_permissioned_20260419_003908.json`               |
 | Permissioned  | Negative test | 11        | `tecPATH_PARTIAL` (no offer)    | ✓ True     | `run_dvp_permissioned_negative_20260419_004035.json`      |
 
+### Round 2 — 2026-04-21 (split-file form, post-Option A)
+Produced by the two separated files after the `--permissioned` flag
+was removed from `dvp_swap.py`. Each file now carries one posture and
+one claim.
+
+| Variant       | Mode          | File                        | Setup txs | Swap tx result                  | DvP atomic | Artifact                                                 |
+|---------------|---------------|-----------------------------|----------:|----------------------------------|-----------:|----------------------------------------------------------|
+| Permissioned  | Happy path    | `dvp_swap_permissioned.py`  | 11        | `tesSUCCESS` (ledger 16724494)   | ✓ True     | `run_dvp_permissioned_20260421_114001.json`              |
+| Permissioned  | Negative test | `dvp_swap_permissioned.py`  | 11        | `tecPATH_PARTIAL` (no offer)    | ✓ True     | `run_dvp_permissioned_negative_20260421_114129.json`     |
+| Open          | Happy path    | `dvp_swap.py`               | 9         | `tesSUCCESS` (ledger 16724793)   | ✓ True     | `run_dvp_20260421_115524.json`                           |
+| Open          | Negative test | `dvp_swap.py`               | 9         | `tecPATH_PARTIAL` (no offer)    | ✓ True     | `run_dvp_negative_20260421_115827.json`                  |
+
 Permissioned runs carry two additional setup transactions:
 `AccountSet asfRequireAuth` on `ShareIssuer` and the issuer-side
 `TrustSet` with `TF_SET_AUTH` authorizing the investor's MMF line.
 The atomic DvP mechanics in steps 10-11 are identical across variants.
 
-All four runs are reproducible via:
+All four current runs are reproducible via:
 
 ```bash
 # Open variant — happy path
@@ -622,11 +651,11 @@ printf "approve\n<approval reason>\n" | \
 
 # Permissioned variant — happy path
 printf "approve\n<approval reason>\n" | \
-  .venv/bin/python builds/tokenized_mmf_xrpl_leg/dvp_swap.py --permissioned
+  .venv/bin/python builds/tokenized_mmf_xrpl_leg/dvp_swap_permissioned.py
 
 # Permissioned variant — negative test
 printf "approve\n<approval reason>\n" | \
-  .venv/bin/python builds/tokenized_mmf_xrpl_leg/dvp_swap.py --permissioned --negative-test
+  .venv/bin/python builds/tokenized_mmf_xrpl_leg/dvp_swap_permissioned.py --negative-test
 ```
 
 ## Doctrine summary (checklist)

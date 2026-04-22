@@ -1,70 +1,85 @@
 """
-PURPOSE:     Extend the tokenized MMF XRPL build to achieve true atomic
-             Delivery-versus-Payment (DvP) on the XRP Ledger testnet.
+PURPOSE:     Standalone permissioned-posture atomic DvP on XRPL testnet.
 
-             Architecture (full rationale in dvp_design.md):
-               * Three actors — ShareIssuer, CashIssuer, Investor.
-               * Setup opens trust lines and pre-funds Investor with a
-                 synthetic USD IOU (I-Owe-You) from CashIssuer.
-               * A human-in-the-loop (HITL) gate records the reviewer's
-                 keystroke + timestamp into the audit artifact.
-               * ShareIssuer posts a Fill-or-Kill OfferCreate (no partial
-                 fills, all-or-nothing).
-               * Investor submits a cross-currency Payment to itself,
-                 bounded by SendMax and tfLimitQuality, which consumes
-                 the offer inside a single validated ledger.
-               * Post-settlement balance reads verify the swap.
+             Companion to `dvp_swap.py` (open variant). The atomic
+             Delivery-versus-Payment mechanics in steps 10-11 are
+             IDENTICAL to the open file — resting OfferCreate + cross-
+             currency Payment with SendMax + tfLimitQuality in a single
+             validated ledger. What this file adds is the mainnet-
+             realistic access-control surface that any regulated
+             tokenization would ship under:
 
-             The --negative-test flag proves the failure mode: skip the
-             OfferCreate and try to run the Payment anyway. The ledger
-             rejects it (no path to destination, no partial fill) and
-             no balances move. Proof by counterexample.
+               Step 4b — ShareIssuer AccountSet asfRequireAuth.
+                         MUST precede any trust line on ShareIssuer (XRPL
+                         rule: the flag cannot be set while trust lines
+                         exist on the account).
+               Step 7b — ShareIssuer TrustSet with TF_SET_AUTH,
+                         LimitAmount.issuer = Investor, value = "0".
+                         The on-ledger equivalent of a post-KYC
+                         allowlist admission — flips the lsfAuth bit on
+                         the investor's MMF trust line. Without this
+                         step, the DvP Payment at step 11 fails with
+                         tecNO_AUTH.
 
-INPUTS:      One CLI flag: --negative-test (default off).
+             Architectural reasoning lives in two places:
+               - `dvp_design.md`                    — the full DvP
+                 architecture (load-bearing).
+               - `dvp_swap_permissioned_design.md`  — the delta doc
+                 governing this file specifically.
+
+INPUTS:      One CLI flag: --negative-test (default off). Skips the
+             OfferCreate at step 10 and proves the Payment fails with
+             tecPATH_PARTIAL, no balances moved.
+
              No secrets on disk. Wallets are freshly faucet-funded each
-             run per operator choice (see dvp_design.md open questions).
+             run; seeds never persisted.
 
-OUTPUTS:     builds/tokenized_mmf_xrpl_leg/run_dvp_YYYYMMDD_HHMMSS.json
-               (or run_dvp_negative_... for the adversarial mode).
+OUTPUTS:     builds/tokenized_mmf_xrpl_leg/run_dvp_permissioned_YYYYMMDD_HHMMSS.json
+               (or run_dvp_permissioned_negative_... for negative tests).
              stdout — BLUF summary + per-step timing.
 
-ASSUMPTIONS: Same as issue_shares.py — testnet only, faucet up, no
-             mainnet exposure. The design doc is the load-bearing
-             architectural reasoning; this file is the executable form.
+             Artifact schema is IDENTICAL to `dvp_swap.py` output.
+             Downstream consumers (log parsers, future dashboards)
+             continue to work with no branching on file-of-origin.
+
+ASSUMPTIONS: XRPL testnet reachable, faucet funding, no mainnet exposure.
+             asfRequireAuth is baseline on testnet — no amendment
+             dependency. xrpl-py 4.5.0 flag encoding for TrustSetFlag
+             and PaymentFlag matches published spec.
 
 AUDIT NOTES: Every tx hash + ledger index + close time captured.
-             HITL approval now recorded in the JSON (keystroke + UTC ts).
+             HITL approval recorded in the JSON — keystroke, approval
+             reason, reviewer identity, prompted_at_utc, decided_at_utc.
              Mainnet hosts blocked at startup via assertion.
              All data is SYNTHETIC — no real fund, cash, or investor.
+
+             Permissioned runs carry TWO additional setup transactions
+             (4b, 7b) vs the open variant. The atomic-DvP mechanics in
+             steps 10-11 are unchanged — permissioning closes the
+             "any holder can consume the offer" surface by restricting
+             who can hold the issuer's IOU; it does not alter the one-
+             ledger atomicity guarantee of the Payment itself.
 """
 
 # ----------------------------------------------------------------------------
-# TEACHING NOTE — what makes this "atomic" DvP on XRPL
+# TEACHING NOTE — why permissioning is orthogonal to atomicity
 # ----------------------------------------------------------------------------
-# XRPL's Payment transaction can do more than move a single currency. A
-# cross-currency Payment specifies:
+# Atomicity answers: "can the ledger produce a state where one leg moved
+# and the other did not?" The XRPL answer is no, by design of the
+# cross-currency Payment + SendMax + tfLimitQuality combination.
 #
-#   Amount   — what the destination receives (in the destination currency).
-#   SendMax  — the maximum the source will pay (in the source currency).
+# Permissioning answers a different question: "who is allowed to hold
+# the issued asset in the first place?" asfRequireAuth + TF_SET_AUTH
+# restricts the set of addresses that can receive the issuer's IOU.
+# It is the institutional access-control surface — the on-ledger
+# expression of a KYC / AML / sanctions-screening workflow.
 #
-# When the two currencies differ, the ledger consults the DEX (the
-# native order book) and routes the exchange through offers. If no
-# path exists — or the rate is worse than SendMax / Amount allows —
-# the whole Payment fails. No partial side-effects, no rollback dance.
-#
-# We combine two XRPL flags to reach institutional-grade atomicity:
-#
-#   tfFillOrKill (on OfferCreate): the offer either fills completely
-#                                  right now or vanishes. No partial
-#                                  fills, no lingering book state.
-#   tfLimitQuality (on Payment):   only consume offers that meet or
-#                                  beat the quoted Amount/SendMax rate.
-#                                  If the rate moved, the tx fails.
-#
-# Together they guarantee: either (a) investor's USD trust-line balance
-# decreases by exactly 1,000,000 AND investor's MMF trust-line balance
-# increases by exactly 1,000,000 in the same validated ledger, or (b)
-# the transaction fails and nothing moves. That is true DvP.
+# The two are independent. An unpermissioned issuer can still run atomic
+# DvP (that is what dvp_swap.py demonstrates). A permissioned issuer
+# runs the same atomic DvP on top of an allowlist. This file shows that
+# the atomicity guarantee survives the addition of the access-control
+# surface — the two compose cleanly, which is what a regulated deployment
+# needs.
 # ----------------------------------------------------------------------------
 
 import argparse
@@ -82,6 +97,7 @@ from xrpl.models.transactions import (
     AccountSet,
     AccountSetAsfFlag,
     TrustSet,
+    TrustSetFlag,
     Payment,
     PaymentFlag,
     OfferCreate,
@@ -98,7 +114,7 @@ MAINNET_HOSTS_BLOCK = ("xrplcluster.com", "s1.ripple.com", "s2.ripple.com")
 # --- Synthetic trade parameters ---------------------------------------------
 SHARE_CURRENCY = "MMF"
 CASH_CURRENCY = "USD"
-TRADE_NOTIONAL = "1000000"         # 1,000,000 shares at $1 NAV
+TRADE_NOTIONAL = "1000000"         # 1,000,000 shares at $1 NAV (SYNTHETIC)
 TRUST_LIMIT = "10000000"           # operational headroom on trust lines
 
 SHARE_ISSUER_LABEL = "Generic Prime MMF Class I Issuer (SYNTHETIC)"
@@ -121,6 +137,7 @@ def utc_now() -> str:
 
 
 def ripple_epoch_to_iso(ripple_time: int) -> str:
+    # XRPL's "Ripple epoch" begins 2000-01-01T00:00:00Z (946684800 Unix).
     ripple_epoch_offset = 946684800
     return datetime.fromtimestamp(ripple_time + ripple_epoch_offset,
                                   timezone.utc).isoformat()
@@ -160,8 +177,12 @@ class BalanceSnapshot:
 
 @dataclass
 class RunRecord:
+    # Schema matches dvp_swap.py one-for-one so downstream tooling
+    # (log parsers, artifact dashboards) can consume either file's output
+    # without branching on origin. `permissioned` is True by construction
+    # in this file; the field is retained for consumer parity.
     mode: str = "happy_path"
-    permissioned: bool = False
+    permissioned: bool = True
     data_label: str = "SYNTHETIC — XRPL testnet, not for production use"
     started_at_utc: str = ""
     finished_at_utc: str = ""
@@ -183,24 +204,21 @@ class RunRecord:
 
 # --- HITL gate --------------------------------------------------------------
 def hitl_gate(context: str, record: HITLRecord) -> bool:
-    """Prompt the operator for approval and record the decision in the
-    audit artifact. Returns True if approved, False otherwise.
+    """Pre-atomic Human-In-The-Loop gate. Returns True if the operator
+    types 'approve' (case-insensitive), False otherwise. Records the
+    decision into the audit artifact with four fields:
 
-    Schema hardened 2026-04-18 per operator decision. Every gate
-    crossing records four fields:
       - reviewer_identity: who approved (v1 hardcoded; future: signed)
       - keystroke:         what they typed, verbatim
       - approval_reason:   one-line free text, captured at decision time
       - decided_at_utc:    when the decision landed
 
-    Rationale: the placeholder remains input()-based to keep this build
-    focused on settlement mechanics, but the artifact schema is now
-    shaped for a real reviewer workflow. When the reviewer-workflow
-    lane ships, only the gate internals change; downstream consumers
-    of the JSON keep working.
-    """
+    Placement is pre-atomic by design: once the Payment submits, there is
+    no hold — the ledger closes and the swap is settled. Gate logic is
+    intentionally identical to dvp_swap.py so operator muscle memory and
+    downstream JSON consumers port across both files without change."""
     print("\n" + "=" * 72)
-    print("HITL GATE — compliance review")
+    print("HITL GATE — compliance review (PERMISSIONED posture)")
     print("=" * 72)
     print(context)
     print("-" * 72)
@@ -223,7 +241,8 @@ def hitl_gate(context: str, record: HITLRecord) -> bool:
 
 
 # --- Balance reads ----------------------------------------------------------
-def snapshot_balances(client: JsonRpcClient, label: str, address: str) -> BalanceSnapshot:
+def snapshot_balances(client: JsonRpcClient, label: str,
+                      address: str) -> BalanceSnapshot:
     """Query account_lines for an address and return a serializable
     snapshot. Used to prove before/after balances around the DvP event."""
     resp = client.request(AccountLines(account=address))
@@ -277,17 +296,66 @@ def _record_tx_step(run_rec: RunRecord, label: str, started_iso: str,
     return step
 
 
+def _fund(role: str, label: str, client: JsonRpcClient,
+          run_rec: RunRecord) -> Wallet:
+    t0_iso = utc_now()
+    t0 = time.monotonic()
+    print(f"[{t0_iso}] Funding {role} wallet ({label})...")
+    wallet = generate_faucet_wallet(client, debug=False)
+    run_rec.steps.append(StepRecord(
+        label=f"Fund {role} wallet (faucet)",
+        started_at_utc=t0_iso,
+        finished_at_utc=utc_now(),
+        wall_seconds=round(time.monotonic() - t0, 3),
+        note=f"{role} address: {wallet.classic_address}",
+    ))
+    print(f"           {role} address: {wallet.classic_address}")
+    return wallet
+
+
+def _submit(run_rec: RunRecord, label: str, tx: Any,
+            client: JsonRpcClient, signer: Wallet) -> StepRecord:
+    t0_iso = utc_now()
+    t0 = time.monotonic()
+    print(f"[{t0_iso}] {label}...")
+    try:
+        result = submit_and_wait(tx, client, signer)
+    except Exception as e:
+        # Capture the failure as an audit event instead of crashing.
+        # Used by the --negative-test path, where step 11 is expected to
+        # be rejected. xrpl-py raises XRPLReliableSubmissionException on
+        # final tec* / tef* / ter* codes for submit_and_wait.
+        wall = round(time.monotonic() - t0, 3)
+        print(f"           SUBMISSION FAILED: {type(e).__name__}: {e}")
+        step = StepRecord(
+            label=label,
+            started_at_utc=t0_iso,
+            finished_at_utc=utc_now(),
+            wall_seconds=wall,
+            engine_result="SUBMIT_EXCEPTION",
+            note=f"{type(e).__name__}: {str(e)[:240]}",
+        )
+        run_rec.steps.append(step)
+        return step
+    return _record_tx_step(run_rec, label, t0_iso, t0, result)
+
+
 # --- Setup phase ------------------------------------------------------------
 def _setup(client: JsonRpcClient,
            run_rec: RunRecord) -> tuple[Wallet, Wallet, Wallet]:
-    """Fund three wallets and open the trust lines for the open-variant
-    DvP. Returns the three Wallet objects in the order
-    (share_issuer, cash_issuer, investor).
+    """Fund three wallets and open the trust lines under the permissioned
+    posture. Eleven transactions total (vs nine in the open variant):
+    two additional steps — 4b (asfRequireAuth on ShareIssuer) and
+    7b (TF_SET_AUTH on the Investor MMF line) — are load-bearing for
+    the permissioned posture and are what distinguishes this file from
+    dvp_swap.py.
 
-    Permissioned posture (asfRequireAuth + explicit investor-line
-    authorization) lives in the sibling file `dvp_swap_permissioned.py`
-    — one file per posture, per operator decision 2026-04-21.
-    """
+    Without step 4b, the allowlist discipline has no effect — any holder
+    could open and use a trust line to ShareIssuer. Without step 7b, the
+    DvP Payment at step 11 would fail with tecNO_AUTH.
+
+    Returns the three Wallets in the order (share_issuer, cash_issuer,
+    investor)."""
 
     # 1-3. Fund all three actors from the testnet faucet.
     share_issuer = _fund("ShareIssuer", SHARE_ISSUER_LABEL, client, run_rec)
@@ -307,6 +375,27 @@ def _setup(client: JsonRpcClient,
         client, share_issuer,
     )
 
+    # 4b. ShareIssuer enables asfRequireAuth.
+    #
+    # Hard XRPL rule: asfRequireAuth can only be set while the account
+    # has ZERO trust lines. The moment a trust line exists on the
+    # account, the flag is rejected. Placement in the sequence is a
+    # protocol constraint, not a stylistic choice.
+    #
+    # Effect: once set, any third party opening a trust line TO
+    # ShareIssuer's issued MMF asset creates an UNAUTHORIZED line. The
+    # holder cannot receive the MMF IOU until ShareIssuer submits
+    # step 7b below.
+    _submit(
+        run_rec,
+        "ShareIssuer AccountSet (enable RequireAuth) [permissioned 4b]",
+        AccountSet(
+            account=share_issuer.classic_address,
+            set_flag=AccountSetAsfFlag.ASF_REQUIRE_AUTH,
+        ),
+        client, share_issuer,
+    )
+
     # 5. CashIssuer: enable DefaultRipple so USD balances can route.
     _submit(
         run_rec, "CashIssuer AccountSet (enable DefaultRipple)",
@@ -318,7 +407,10 @@ def _setup(client: JsonRpcClient,
     )
 
     # 6. ShareIssuer opens USD trust line to CashIssuer so it can
-    # receive the cash leg of the DvP swap.
+    # receive the cash leg of the DvP swap. RequireAuth on ShareIssuer
+    # does NOT affect ShareIssuer's ability to hold other issuers'
+    # IOUs — the flag gates holders of ShareIssuer's MMF, not
+    # ShareIssuer's own holdings.
     _submit(
         run_rec,
         f"ShareIssuer TrustSet (hold {CASH_CURRENCY} from CashIssuer)",
@@ -334,6 +426,9 @@ def _setup(client: JsonRpcClient,
     )
 
     # 7. Investor opens MMF trust line to ShareIssuer.
+    # The line exists but is UNAUTHORIZED (lsfAuth bit is 0) — the
+    # Payment in step 11 would fail with tecNO_AUTH if step 7b below
+    # is skipped.
     _submit(
         run_rec,
         f"Investor TrustSet (hold {SHARE_CURRENCY} from ShareIssuer)",
@@ -346,6 +441,43 @@ def _setup(client: JsonRpcClient,
             ),
         ),
         client, investor,
+    )
+
+    # 7b. ShareIssuer authorizes the Investor's MMF trust line.
+    #
+    # On-ledger equivalent of a post-KYC allowlist admission: the
+    # issuer flips the lsfAuth bit on the investor's MMF line so the
+    # investor can receive the issuer's IOU.
+    #
+    # Mechanics:
+    #   Account              = ShareIssuer  (the signer — the issuer
+    #                                         authorizing, not the
+    #                                         holder)
+    #   LimitAmount.currency = MMF
+    #   LimitAmount.issuer   = Investor     (the counterparty of the
+    #                                         line *from ShareIssuer's
+    #                                         perspective*)
+    #   LimitAmount.value    = "0"          (authorization-only — the
+    #                                         issuer is not opening a
+    #                                         reciprocal trust line)
+    #   Flags                = TF_SET_AUTH  (0x00010000)
+    #
+    # Without this step, step 11 fails with tecNO_AUTH. With it, the
+    # atomic DvP proceeds identically to the open variant.
+    _submit(
+        run_rec,
+        f"ShareIssuer TrustSet (authorize Investor {SHARE_CURRENCY} line) "
+        f"[permissioned 7b]",
+        TrustSet(
+            account=share_issuer.classic_address,
+            limit_amount=IssuedCurrencyAmount(
+                currency=SHARE_CURRENCY,
+                issuer=investor.classic_address,
+                value="0",
+            ),
+            flags=TrustSetFlag.TF_SET_AUTH,
+        ),
+        client, share_issuer,
     )
 
     # 8. Investor opens USD trust line to CashIssuer.
@@ -382,60 +514,23 @@ def _setup(client: JsonRpcClient,
     return share_issuer, cash_issuer, investor
 
 
-def _fund(role: str, label: str, client: JsonRpcClient,
-          run_rec: RunRecord) -> Wallet:
-    t0_iso = utc_now()
-    t0 = time.monotonic()
-    print(f"[{t0_iso}] Funding {role} wallet ({label})...")
-    wallet = generate_faucet_wallet(client, debug=False)
-    run_rec.steps.append(StepRecord(
-        label=f"Fund {role} wallet (faucet)",
-        started_at_utc=t0_iso,
-        finished_at_utc=utc_now(),
-        wall_seconds=round(time.monotonic() - t0, 3),
-        note=f"{role} address: {wallet.classic_address}",
-    ))
-    print(f"           {role} address: {wallet.classic_address}")
-    return wallet
-
-
-def _submit(run_rec: RunRecord, label: str, tx: Any,
-            client: JsonRpcClient, signer: Wallet) -> StepRecord:
-    t0_iso = utc_now()
-    t0 = time.monotonic()
-    print(f"[{t0_iso}] {label}...")
-    try:
-        result = submit_and_wait(tx, client, signer)
-    except Exception as e:
-        # Capture the failure as an audit event instead of crashing.
-        # Used mainly by the --negative-test path, where we expect one
-        # of these to be rejected. xrpl-py raises XRPLReliableSubmissionException
-        # on final tec* / tef* / ter* codes for submit_and_wait.
-        wall = round(time.monotonic() - t0, 3)
-        print(f"           SUBMISSION FAILED: {type(e).__name__}: {e}")
-        step = StepRecord(
-            label=label,
-            started_at_utc=t0_iso,
-            finished_at_utc=utc_now(),
-            wall_seconds=wall,
-            engine_result="SUBMIT_EXCEPTION",
-            note=f"{type(e).__name__}: {str(e)[:240]}",
-        )
-        run_rec.steps.append(step)
-        return step
-    return _record_tx_step(run_rec, label, t0_iso, t0, result)
-
-
 # --- DvP phase --------------------------------------------------------------
 def _atomic_dvp(client: JsonRpcClient, run_rec: RunRecord,
                 share_issuer: Wallet, cash_issuer: Wallet, investor: Wallet,
                 negative_test: bool) -> None:
-    """The value-exchange event. Step 10 posts the FoK Offer. Step 11
-    consumes it via a cross-currency Payment with SendMax + LimitQuality.
+    """The value-exchange event. Step 10 posts a resting OfferCreate.
+    Step 11 is the atomic moment — a cross-currency Payment with
+    SendMax + tfLimitQuality that consumes the offer in a single
+    validated ledger.
 
-    In --negative-test, step 10 is skipped. Step 11 then has no offer
-    to consume and the ledger should reject it with tecPATH_DRY (or
-    similar), leaving all balances unchanged."""
+    Mechanics are IDENTICAL to dvp_swap.py. Permissioning is enforced
+    upstream in _setup() — by the time control reaches this function,
+    the investor's MMF line has been authorized and the atomic DvP can
+    run unchanged.
+
+    Negative test: skip step 10. Ledger rejects step 11 with
+    tecPATH_PARTIAL (no offer on the book to consume), all balances
+    unchanged. Same failure mode as the open variant."""
 
     # Snapshot balances before the DvP event.
     run_rec.balances_before_dvp = [
@@ -444,10 +539,18 @@ def _atomic_dvp(client: JsonRpcClient, run_rec: RunRecord,
         snapshot_balances(client, INVESTOR_LABEL, investor.classic_address),
     ]
 
-    # Step 10 — ShareIssuer posts Fill-or-Kill Offer.
+    # Step 10 — ShareIssuer posts a resting Offer.
+    #
+    # NOTE — maker vs taker (architectural correction logged in
+    # dvp_design.md Section 2.3): FillOrKill and ImmediateOrCancel are
+    # TAKER flags. A maker posting new liquidity into an empty book
+    # with FoK gets tecKILLED because there is nothing to consume. The
+    # correct primitive for primary issuance is a RESTING offer; the
+    # atomicity guarantee lives on the CONSUMING side (step 11's
+    # tfLimitQuality + SendMax).
     if negative_test:
         print("\n[negative-test] Skipping OfferCreate (step 10). "
-              "Payment should fail cleanly.")
+              "Payment should fail cleanly with tecPATH_PARTIAL.")
         run_rec.steps.append(StepRecord(
             label="SKIPPED: ShareIssuer OfferCreate (negative test)",
             started_at_utc=utc_now(),
@@ -456,14 +559,6 @@ def _atomic_dvp(client: JsonRpcClient, run_rec: RunRecord,
             note="negative test: offer deliberately not posted",
         ))
     else:
-        # CORRECTION from design-doc v1: FoK on OfferCreate is a *taker*
-        # flag — "consume existing book liquidity immediately or die"
-        # (tecKILLED if no liquidity). Since our ShareIssuer is the one
-        # *creating* liquidity with no counter-offer yet on the book, a
-        # regular (resting) Offer is the right primitive. The atomicity
-        # guarantee lives on the consuming side: the Payment's
-        # tfLimitQuality blocks any fill worse than the quoted rate and
-        # returns tecPATH_PARTIAL if the offer has been moved/consumed.
         offer_tx = OfferCreate(
             account=share_issuer.classic_address,
             taker_pays=IssuedCurrencyAmount(
@@ -486,7 +581,12 @@ def _atomic_dvp(client: JsonRpcClient, run_rec: RunRecord,
 
     # Step 11 — Investor cross-currency self-Payment that consumes the
     # offer atomically. tfLimitQuality ensures the rate is at-or-better
-    # than Amount / SendMax.
+    # than Amount / SendMax. This is THE atomic event — either:
+    #   (a) investor's USD trust-line balance decreases by exactly
+    #       TRADE_NOTIONAL AND investor's MMF trust-line balance
+    #       increases by exactly TRADE_NOTIONAL in the same validated
+    #       ledger, or
+    #   (b) the transaction fails (tec* code) and nothing moves.
     payment_tx = Payment(
         account=investor.classic_address,
         destination=investor.classic_address,
@@ -527,7 +627,6 @@ def _atomic_dvp(client: JsonRpcClient, run_rec: RunRecord,
                 "This is a meaningful anomaly — investigate."
             )
         else:
-            # Confirm no MMF was delivered to investor.
             inv_after = run_rec.balances_after_dvp[2].lines
             got_mmf = any(
                 line.get("currency") == SHARE_CURRENCY
@@ -543,12 +642,13 @@ def _atomic_dvp(client: JsonRpcClient, run_rec: RunRecord,
             else:
                 run_rec.dvp_atomic = True
                 run_rec.verdict = (
-                    f"NEGATIVE TEST PASSED: no Offer -> Payment rejected "
-                    f"(engine={swap_step.engine_result}). No shares delivered, "
-                    f"no cash moved. Failure mode is clean."
+                    f"NEGATIVE TEST PASSED (permissioned): no Offer -> "
+                    f"Payment rejected (engine={swap_step.engine_result}). "
+                    f"No shares delivered, no cash moved. Failure mode is "
+                    f"clean, and the permissioned setup path did not "
+                    f"introduce spurious approvals."
                 )
     else:
-        # Expect success. Verify investor received exactly TRADE_NOTIONAL MMF.
         succeeded = swap_step.engine_result == "tesSUCCESS"
         inv_after = run_rec.balances_after_dvp[2].lines
         mmf_balance = next(
@@ -568,27 +668,33 @@ def _atomic_dvp(client: JsonRpcClient, run_rec: RunRecord,
         run_rec.dvp_atomic = succeeded and delivered_shares and cash_drained
         if run_rec.dvp_atomic:
             run_rec.verdict = (
-                f"DvP ATOMIC: investor received {mmf_balance} {SHARE_CURRENCY}, "
-                f"USD drained to 0. Swap settled in a single validated ledger."
+                f"DvP ATOMIC (permissioned): investor received {mmf_balance} "
+                f"{SHARE_CURRENCY}, USD drained to 0. Swap settled in a single "
+                f"validated ledger on an authorized trust line."
             )
         else:
             run_rec.verdict = (
                 f"DvP NOT ATOMIC: engine={swap_step.engine_result}, "
                 f"investor MMF={mmf_balance}, investor USD={usd_balance}. "
-                f"Review artifact."
+                f"Review artifact. (Check for tecNO_AUTH if step 7b was "
+                f"skipped.)"
             )
 
 
 # --- Orchestration ----------------------------------------------------------
 def run(negative_test: bool) -> RunRecord:
+    # Mainnet-blocked at startup. These assertions are the last line of
+    # defence before any client is constructed; the doctrine (testnet-
+    # only, mainnet-blocked) is enforced here in code, not in comments.
     assert "altnet" in TESTNET_RPC, "Endpoint must be XRPL testnet."
     for blocked in MAINNET_HOSTS_BLOCK:
         assert blocked not in TESTNET_RPC, f"Refusing mainnet host {blocked}."
 
-    mode = "negative_test" if negative_test else "happy_path"
+    mode_parts = ["negative_test" if negative_test else "happy_path",
+                  "permissioned"]
     run_rec = RunRecord(
-        mode=mode,
-        permissioned=False,
+        mode="__".join(mode_parts),
+        permissioned=True,
         started_at_utc=utc_now(),
     )
     client = JsonRpcClient(TESTNET_RPC)
@@ -598,16 +704,17 @@ def run(negative_test: bool) -> RunRecord:
     share_issuer, cash_issuer, investor = _setup(client, run_rec)
 
     approved = hitl_gate(
-        f"ShareIssuer:     {share_issuer.classic_address}\n"
-        f"CashIssuer:      {cash_issuer.classic_address}\n"
-        f"Investor:        {investor.classic_address}\n"
-        f"Mode:            {run_rec.mode}\n"
-        f"Trust-line model: open (any holder may open the trust line "
-        f"without issuer approval)\n"
-        f"Action:          Atomic DvP — swap {TRADE_NOTIONAL} {CASH_CURRENCY} "
-        f"for {TRADE_NOTIONAL} {SHARE_CURRENCY}\n"
-        f"Guarantees:      Resting Offer + cross-currency Payment with "
-        f"SendMax + tfLimitQuality = single-tx atomicity.",
+        f"ShareIssuer:      {share_issuer.classic_address}\n"
+        f"CashIssuer:       {cash_issuer.classic_address}\n"
+        f"Investor:         {investor.classic_address}\n"
+        f"Mode:              {run_rec.mode}\n"
+        f"Trust-line model:  permissioned (asfRequireAuth + explicit "
+        f"issuer authorization of investor MMF line)\n"
+        f"Action:            Atomic DvP — swap {TRADE_NOTIONAL} "
+        f"{CASH_CURRENCY} for {TRADE_NOTIONAL} {SHARE_CURRENCY}\n"
+        f"Guarantees:        Resting Offer + cross-currency Payment with "
+        f"SendMax + tfLimitQuality = single-tx atomicity, on an "
+        f"authorized trust line.",
         run_rec.hitl,
     )
     if not approved:
@@ -617,11 +724,13 @@ def run(negative_test: bool) -> RunRecord:
         )
         run_rec.verdict = (
             f"Aborted at HITL gate (keystroke={run_rec.hitl.keystroke!r}). "
-            f"Setup txs persisted; DvP never attempted."
+            f"Setup txs persisted (including permissioned 4b + 7b); "
+            f"DvP never attempted."
         )
         return run_rec
 
-    _atomic_dvp(client, run_rec, share_issuer, cash_issuer, investor, negative_test)
+    _atomic_dvp(client, run_rec, share_issuer, cash_issuer, investor,
+                negative_test)
 
     run_rec.finished_at_utc = utc_now()
     run_rec.total_wall_seconds = round(
@@ -632,7 +741,7 @@ def run(negative_test: bool) -> RunRecord:
 
 def write_artifact(run_rec: RunRecord) -> Path:
     stamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-    parts = ["run_dvp"]
+    parts = ["run_dvp", "permissioned"]
     if run_rec.mode.startswith("negative_test"):
         parts.append("negative")
     parts.append(stamp)
@@ -643,7 +752,12 @@ def write_artifact(run_rec: RunRecord) -> Path:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[1].strip())
+    parser = argparse.ArgumentParser(
+        description="Atomic DvP on XRPL testnet — PERMISSIONED variant "
+                    "(asfRequireAuth + explicit trust-line authorization). "
+                    "Companion to dvp_swap.py (open variant). All output is "
+                    "SYNTHETIC; no real fund, cash, or investor.",
+    )
     parser.add_argument(
         "--negative-test",
         action="store_true",

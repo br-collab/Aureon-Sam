@@ -78,41 +78,67 @@ crossing midnight ET log to the **start date**, not the end date.
 
 ---
 
-## The weekly report
+## The weekly summary
 
-Written at the end of each active week, drawing on the seven (or
-fewer) nightly logs. Two elements. No scoring, no ranking.
+*Reformatted 2026-04-24 per operator amendment — replaces the
+earlier "best lessons learned + one significant accomplishment"
+Sunday-synthesis format. The first Sunday synthesis (2026-04-26
+covering ISO week 16) will instead be the first Friday summary
+using the new format below.*
 
-### Best lessons learned
+Written Fridays at 10:00 America/New_York. Three questions, in
+order. Drawing on the week's nightly logs + the week's git history
+across `br-collab/{Aureon-Sam, aureon, Cato---FICC-MCP}`.
 
-The lessons that emerged during the week that most change how the
-next week should be approached. Plural — anywhere from two to five
-is reasonable, more than that is a sign of under-compression. Each
-lesson is one or two sentences. Grounded in specific evidence from
-the week's logs (cite the date). Not aphorisms. Not slogans.
-Specific claims the operator could act on or argue with.
+### 1. What did I learn this week?
 
-### One significant accomplishment
+The concrete things Sam or the operator understood that they did
+not understand on Monday. Not aspirational — grounded in specific
+commits, nightly-log observations, or corrections. Each learning
+carries its evidence (commit SHA, log date, or doctrine line).
+Plural, two to five. More than five is a sign of under-compression.
 
-A single named thing the week produced that matters. Picked by Sam,
-not by the operator. The criterion is "mattered to the work's
-direction," not "took the most effort." A correction that unblocked
-a design is significant. A feature that shipped without unblocking
-anything downstream may not be. The constraint to one (not three,
-not five) is load-bearing: it forces a judgment about what the
-week was actually about.
+### 2. What did I fail at the beginning?
 
-**Why "significant accomplishment" and not "wins."** Wins implies
-scoring. Significant implies judgment. The ritual rewards judgment.
+Early-week false starts, wrong-model commits, reverted approaches,
+corrections to claims made on Monday or Tuesday. Named, with
+evidence. The purpose is honest — failure is architectural signal,
+not a blemish to hide. If nothing failed at the start of the week,
+write "nothing failed" faithfully; do not manufacture failure to
+fill the section.
+
+### 3. What do I feel needs to be improved from AI to human and
+### vice versa?
+
+The bilateral relationship question. Two parts:
+
+- **AI → human (Sam observing Guillermo):** patterns Sam noticed
+  in the operator's framing, requests, or reactions that could be
+  tightened or reconsidered. Written from Sam's honest observation,
+  not flattery.
+- **Human → AI (Guillermo observing Sam):** patterns the operator
+  noticed in Sam's output, reasoning, or judgment that need to
+  change. This half is operator-filled; Sam cannot write it from
+  its own perspective.
+
+If a cold-session scheduled agent is drafting the summary, this
+section is stubbed for operator + next warm-session Sam to fill
+together during the weekend — a cold-session agent cannot produce
+felt-sense reflection honestly.
 
 ### Cadence
 
-ISO weeks (Monday–Sunday). Synthesis runs **Sunday 22:50
-America/New_York**, or the first active session of the following
-week if Sunday is not an active session. First synthesis covers
-ISO week 16 (April 13–19, 2026) and is written on **Sunday
-2026-04-26**, not 2026-04-19 — one day of recorded content
-(2026-04-18/19) is too thin for a week-16 synthesis.
+ISO weeks (Monday–Sunday). Summary fires **Friday 10:00
+America/New_York** — mid-week-end-of-business reflection rather
+than end-of-week synthesis. The Friday timing lets the weekend
+stay available for revision before the next week opens. If the
+operator is inactive Friday, the summary still drafts via the
+scheduled agent; operator revises in their next active session.
+
+Automation wired 2026-04-24: scheduled agent
+`sam-weekly-summary` fires at 14:00 AND 15:00 UTC on Fridays
+(covers 10:00 ET year-round across EDT/EST). Manage at
+https://claude.ai/code/scheduled/.
 
 ---
 
@@ -180,8 +206,9 @@ about the artifact. The ritual is about the practice.
 | 2 | Operator companion log | Not adopted; operator voice stays in `doctrine/` |
 | 3 | Session boundaries | One log per ISO day in America/New_York; sessions append; midnight-crossings log to start date |
 | 4 | Backfill | Yes — retroactive nightly log for 2026-04-18 written |
-| 5 | Weekly cadence | ISO weeks (Mon–Sun); synthesis Sun 22:50 ET; first synthesis 2026-04-26 covering ISO week 16 |
+| 5 | Weekly cadence | ISO weeks (Mon–Sun); Friday 10:00 ET reflection (amended 2026-04-24 from Sun 22:50); three questions (learned / failed at beginning / AI↔human improvement) |
 | 6 | Nightly cadence | By 22:00 America/New_York on each active session day (amended 2026-04-21 from "end of session") |
+| 7 | Weekly format   | Three questions (amended 2026-04-24); replaces the earlier "lessons + significant accomplishment" format before the first synthesis fired |
 
 ---
 
